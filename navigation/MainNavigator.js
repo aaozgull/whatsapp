@@ -46,7 +46,6 @@ const MainNavigator = (props) => {
         component={TabNavigator}
         options={{ headerShown: false }}
       />
-
       <Stack.Screen
         name="ChatScreen"
         component={ChatScreen}
