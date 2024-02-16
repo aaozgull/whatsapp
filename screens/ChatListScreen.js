@@ -1,57 +1,97 @@
-import React, { useEffect } from 'react';
-import { View, Text, StyleSheet, Button } from 'react-native';
-import { HeaderButtons, Item } from 'react-navigation-header-buttons';
-import { useSelector } from 'react-redux';
-import CustomHeaderButton from '../components/CustomHeaderButton';
+import React, { useEffect } from "react";
+import { View, Text, StyleSheet, Button, FlatList } from "react-native";
+import { HeaderButtons, Item } from "react-navigation-header-buttons";
+import { useSelector } from "react-redux";
+import CustomHeaderButton from "../components/CustomHeaderButton";
+import DataItem from "../components/DataItem";
+import PageContainer from "../components/PageContainer";
+import PageTitle from "../components/PageTitle";
 
-const ChatListScreen = props => {
+const ChatListScreen = (props) => {
+  const selectedUser = props.route?.params?.selectedUserId;
 
-    const selectedUser = props.route?.params?.selectedUserId;
+  const userData = useSelector((state) => state.auth.userData);
+  const storedUsers = useSelector((state) => state.users.storedUsers);
+  const userChats = useSelector((state) => {
+    const chatsData = state.chats.chatsData;
+    return Object.values(chatsData).sort((a, b) => {
+      return new Date(b.updatedAt) - new Date(a.updatedAt);
+    });
+  });
 
-    const userData = useSelector(state => state.auth.userData);
+  useEffect(() => {
+    props.navigation.setOptions({
+      headerRight: () => {
+        return (
+          <HeaderButtons HeaderButtonComponent={CustomHeaderButton}>
+            <Item
+              title="New chat"
+              iconName="create-outline"
+              onPress={() => props.navigation.navigate("NewChat")}
+            />
+          </HeaderButtons>
+        );
+      },
+    });
+  }, []);
 
-    useEffect(() => {
-        props.navigation.setOptions({
-            headerRight: () => {
-                return <HeaderButtons HeaderButtonComponent={CustomHeaderButton}>
-                    <Item
-                        title="New chat"
-                        iconName="create-outline"
-                        onPress={() => props.navigation.navigate("NewChat")}/>
-                </HeaderButtons>
-            }
-        })
-    }, []);
+  useEffect(() => {
+    if (!selectedUser) {
+      return;
+    }
 
-    useEffect(() => {
+    const chatUsers = [selectedUser, userData.userId];
 
-        if (!selectedUser) {
-            return;
-        }
-        
-        const chatUsers = [selectedUser, userData.userId];
+    const navigationProps = {
+      newChatData: { users: chatUsers },
+    };
 
-        const navigationProps = {
-            newChatData: { users: chatUsers }
-        }
+    props.navigation.navigate("ChatScreen", navigationProps);
+  }, [props.route?.params]);
 
-        props.navigation.navigate("ChatScreen", navigationProps);
+  return (
+    <PageContainer>
+      <PageTitle text="Chats" />
 
-    }, [props.route?.params])
-    
-    return <View style={styles.container}>
-        <Text>Chat list screen</Text>
+      <FlatList
+        data={userChats}
+        renderItem={(itemData) => {
+          const chatData = itemData.item;
+          const chatId = chatData.key;
 
-        <Button title='Go to chat screen' onPress={() => props.navigation.navigate("ChatScreen") } />
-    </View>
+          const otherUserId = chatData.users.find(
+            (uid) => uid !== userData.userId
+          );
+          const otherUser = storedUsers[otherUserId];
+
+          if (!otherUser) return;
+
+          const title = `${otherUser.firstName} ${otherUser.lastName}`;
+          const subTitle = "This will be a message..";
+          const image = otherUser.profilePicture;
+
+          return (
+            <DataItem
+              title={title}
+              subTitle={subTitle}
+              image={image}
+              onPress={() =>
+                props.navigation.navigate("ChatScreen", { chatId })
+              }
+            />
+          );
+        }}
+      />
+    </PageContainer>
+  );
 };
 
 const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center'
-    }
-})
+  container: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+});
 
 export default ChatListScreen;
